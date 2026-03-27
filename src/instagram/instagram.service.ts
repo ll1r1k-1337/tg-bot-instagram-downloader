@@ -24,23 +24,23 @@ export class InstagramService {
 
       const options = {
         method: 'GET',
-        url: 'https://instagram120.p.rapidapi.com/media/links',
+        url: 'https://instagram-reels-downloader-api.p.rapidapi.com/download',
         params: { url: url },
         headers: {
             'X-RapidAPI-Key': rapidApiKey,
-            'X-RapidAPI-Host': 'instagram120.p.rapidapi.com'
+            'X-RapidAPI-Host': 'instagram-reels-downloader-api.p.rapidapi.com'
         }
       };
 
       const res = await axios.request(options);
 
       const data = res.data;
-      if (!data || !data.media || data.media.length === 0) {
+      if (!data || !data.medias || data.medias.length === 0) {
          throw new Error('No media links found in the Instagram post.');
       }
 
       const results: DownloadedMedia[] = [];
-      for (const media of data.media) {
+      for (const media of data.medias) {
           const directUrl = media.url;
           if (!directUrl) continue;
 
@@ -53,10 +53,15 @@ export class InstagramService {
             }
           });
 
-          // Instagram120 usually returns media type as part of the structure or we can infer from the response
+          // EaseApi returns media type as part of the structure ('video' or 'image')
+          let mediaType: 'video' | 'photo' = 'photo';
+          if (media.type === 'video' || media.extension === 'mp4') {
+             mediaType = 'video';
+          }
+
           results.push({
              buffer: Buffer.from(mediaResponse.data),
-             type: media.type === 'video' ? 'video' : 'photo' // Assuming `media.type` property exists and can be 'video' or 'photo'
+             type: mediaType
           });
       }
 
