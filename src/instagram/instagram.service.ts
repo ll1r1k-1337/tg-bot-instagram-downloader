@@ -34,13 +34,18 @@ export class InstagramService {
 
       const res = await axios.request(options);
 
-      const data = res.data;
+      const responseData = res.data;
+      const data = responseData.data || responseData;
+
       if (!data || !data.medias || data.medias.length === 0) {
          throw new Error('No media links found in the Instagram post.');
       }
 
       const results: DownloadedMedia[] = [];
       for (const media of data.medias) {
+          if (media.type === 'audio' || media.extension === 'm4a') {
+              continue;
+          }
           const directUrl = media.url;
           if (!directUrl) continue;
 
