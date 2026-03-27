@@ -31,6 +31,18 @@
 $ npm install
 ```
 
+### Environment Configuration
+
+The application requires some environment variables to run. Create a `.env` file in the root directory and add the necessary variables. You can use the provided `example.env` as a template:
+
+```bash
+$ cp example.env .env
+```
+
+Ensure you provide valid values for:
+- `TELEGRAM_BOT_TOKEN`: Your Telegram Bot API token.
+- `RAPIDAPI_KEY`: Your RapidAPI key for accessing the Instagram API.
+
 ## Compile and run the project
 
 ```bash
@@ -42,6 +54,23 @@ $ npm run start:dev
 
 # production mode
 $ npm run start:prod
+```
+
+### Running with PM2 (Production)
+
+To run the application in production, you can use PM2 with the provided `ecosystem.config.js` file.
+
+First, build the application:
+
+```bash
+$ npm run build
+```
+
+Then, start the application with PM2:
+
+```bash
+$ npm install -g pm2
+$ pm2 start ecosystem.config.js --env production
 ```
 
 ## Run tests
