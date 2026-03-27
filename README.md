@@ -31,6 +31,18 @@
 $ npm install
 ```
 
+### Environment Configuration
+
+The application requires some environment variables to run. Create a `.env` file in the root directory and add the necessary variables. You can use the provided `example.env` as a template:
+
+```bash
+$ cp example.env .env
+```
+
+Ensure you provide valid values for:
+- `TELEGRAM_BOT_TOKEN`: Your Telegram Bot API token.
+- `RAPIDAPI_KEY`: Your RapidAPI key for accessing the Instagram API.
+
 ## Compile and run the project
 
 ```bash
