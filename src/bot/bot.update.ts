@@ -22,39 +22,55 @@ export class BotUpdate {
   @On('text')
   async onText(@Ctx() ctx: Context) {
     const messageObj = ctx.message as any;
-    if (!messageObj || !messageObj.text) return;
+    if (!messageObj || !messageObj.text) {
+      this.logger.debug('Received update without text message object, ignoring.');
+      return;
+    }
 
     const text = messageObj.text;
+    const userId = messageObj.from?.id;
+    this.logger.debug(`Received text message from user ${userId}: "${text}"`);
+
     const urlPattern = /(https?:\/\/(?:www\.)?instagram\.com\/(?:p|reel|tv|stories)\/[^\/?#&]+)/;
     const match = text.match(urlPattern);
 
     if (!match) {
+      this.logger.warn(`No valid Instagram URL found in text from user ${userId}`);
       await ctx.reply('Пожалуйста, отправь правильную ссылку на Instagram видео или фото.');
       return;
     }
 
     const url = match[0];
+    this.logger.debug(`Parsed Instagram URL: ${url}`);
+
     const waitMessage = await ctx.reply('⏳ Скачиваю медиа... Пожалуйста, подождите.', { reply_parameters: { message_id: messageObj.message_id } });
 
     try {
-      this.logger.log(`Processing request for: ${url}`);
+      this.logger.log(`Initiating download request for URL: ${url} (User: ${userId})`);
       const mediaList = await this.instagramService.downloadMedia(url);
+
+      this.logger.log(`Successfully downloaded ${mediaList.length} media item(s) for URL: ${url}`);
 
       if (mediaList.length === 1) {
           const media = mediaList[0];
           if (media.type === 'video') {
+              this.logger.log(`Sending video back to user ${userId}`);
               await ctx.replyWithVideo(
                  { source: media.buffer },
                  { reply_parameters: { message_id: messageObj.message_id } }
               );
+              this.logger.verbose(`Successfully sent video to user ${userId}`);
           } else {
+              this.logger.log(`Sending photo back to user ${userId}`);
               await ctx.replyWithPhoto(
                  { source: media.buffer },
                  { reply_parameters: { message_id: messageObj.message_id } }
               );
+              this.logger.verbose(`Successfully sent photo to user ${userId}`);
           }
       } else {
           // Send as media group if there are multiple items
+          this.logger.log(`Sending media group (${mediaList.length} items) back to user ${userId}`);
           const mediaGroup: any[] = mediaList.map(media => ({
               type: media.type === 'video' ? 'video' : 'photo',
               media: { source: media.buffer }
@@ -63,18 +79,22 @@ export class BotUpdate {
           await ctx.replyWithMediaGroup(mediaGroup, {
              reply_parameters: { message_id: messageObj.message_id }
           });
+          this.logger.verbose(`Successfully sent media group to user ${userId}`);
       }
 
     } catch (error: any) {
-      this.logger.error(`Error processing url ${url}: ${error.message}`);
+      this.logger.error(`Error processing url ${url} for user ${userId}: ${error.message}`, error.stack);
       await ctx.reply(`❌ Ошибка: ${error.message}. Возможно, аккаунт приватный, ссылка неверна, или сервис временно недоступен.`, { reply_parameters: { message_id: messageObj.message_id } });
     } finally {
        // Optional: delete the "processing" message
        try {
            if (ctx.chat) {
                await ctx.telegram.deleteMessage(ctx.chat.id, waitMessage.message_id);
+               this.logger.debug(`Deleted wait message ${waitMessage.message_id} in chat ${ctx.chat.id}`);
            }
-       } catch(e) {}
+       } catch(e: any) {
+           this.logger.warn(`Failed to delete wait message ${waitMessage.message_id}: ${e.message}`);
+       }
     }
   }
 }
